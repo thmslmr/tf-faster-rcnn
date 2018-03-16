@@ -9,7 +9,7 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from layer_utils.generate_anchors import generate_anchors_fast
+from layer_utils.generate_anchors import generate_anchors
 
 
 def generate_anchors_pre(height, width, feat_stride=16,
@@ -26,7 +26,7 @@ def generate_anchors_pre(height, width, feat_stride=16,
     sx = tf.reshape(shift_x, shape=(-1,))
     sy = tf.reshape(shift_y, shape=(-1,))
 
-    anchor_generation_function = generate_anchors_fast  # generate_anchors
+    anchor_generation_function = generate_anchors
     anchors = anchor_generation_function(ratios=np.array(anchor_ratios),
                                          scales=np.array(anchor_scales))
     print(anchors)

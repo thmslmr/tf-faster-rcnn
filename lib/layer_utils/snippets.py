@@ -29,7 +29,7 @@ def generate_anchors_pre(height, width, feat_stride=16,
     anchor_generation_function = generate_anchors
     anchors = anchor_generation_function(ratios=np.array(anchor_ratios),
                                          scales=np.array(anchor_scales))
-    print(anchors)
+
     A = anchors.shape[0]
     K = tf.multiply(width, height)
     length = K * A

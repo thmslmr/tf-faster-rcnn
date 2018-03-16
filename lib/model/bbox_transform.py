@@ -9,6 +9,8 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import tensorflow as tf
+
 
 def bbox_transform(ex_rois, gt_rois):
     ex_widths = ex_rois[:, 2] - ex_rois[:, 0] + 1.0
@@ -85,7 +87,8 @@ def bbox_transform_inv_tf(boxes, deltas):
     pred_boxes2 = tf.add(pred_ctr_x, pred_w * 0.5)
     pred_boxes3 = tf.add(pred_ctr_y, pred_h * 0.5)
 
-    return tf.stack([pred_boxes0, pred_boxes1, pred_boxes2, pred_boxes3], axis=1)
+    return tf.stack([pred_boxes0, pred_boxes1, pred_boxes2, pred_boxes3],
+                    axis=1)
 
 
 def clip_boxes(boxes, im_shape):
@@ -98,6 +101,7 @@ def clip_boxes(boxes, im_shape):
     boxes[:, 3::4] = np.maximum(np.minimum(boxes[:, 3::4], im_shape[0] - 1), 0)
 
     return boxes
+
 
 def clip_boxes_tf(boxes, im_info):
     """

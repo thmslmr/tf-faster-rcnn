@@ -8,10 +8,12 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import tensorflow as tf
 from layer_utils.generate_anchors import generate_anchors
 
+
 def generate_anchors_pre(height, width, feat_stride=16,
-    anchor_scales=(8,16,32), anchor_ratios=(0.5,1,2)):
+                         anchor_scales=(8, 16, 32), anchor_ratios=(0.5, 1, 2)):
     """
         A wrapper function to generate anchors given different scales
         Also return the number of anchors in variable 'length'
@@ -24,7 +26,8 @@ def generate_anchors_pre(height, width, feat_stride=16,
     sx = tf.reshape(shift_x, shape=(-1,))
     sy = tf.reshape(shift_y, shape=(-1,))
 
-    anchors = generate_anchors(ratios=np.array(anchor_ratios), scales=np.array(anchor_scales))
+    anchors = generate_anchors(ratios=np.array(anchor_ratios),
+                               scales=np.array(anchor_scales))
 
     A = anchors.shape[0]
     K = tf.multiply(width, height)

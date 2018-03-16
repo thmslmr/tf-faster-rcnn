@@ -8,14 +8,13 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-import numpy as np
 
 from model.config import cfg
-from model.bbox_transform import bbox_transform_inv, clip_boxes,
-    bbox_transform_inv_tf, clip_boxes_tf
+from model.bbox_transform import bbox_transform_inv_tf, clip_boxes_tf
+
 
 def proposal_top_layer(rpn_cls_prob, rpn_bbox_pred, im_info,
-    _feat_stride, anchors, num_anchors):
+                       _feat_stride, anchors, num_anchors):
     """
         A layer that just selects the top region proposals
         without using non-maximal suppression,

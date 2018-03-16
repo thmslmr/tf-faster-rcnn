@@ -48,10 +48,10 @@ class Network(object):
     # use a customized visualization function to visualize the boxes
     if self._gt_image is None:
       self._add_gt_image()
-    image = tf.py_func(draw_bounding_boxes, 
+    image = tf.py_func(draw_bounding_boxes,
                       [self._gt_image, self._gt_boxes, self._im_info],
                       tf.float32, name="gt_boxes")
-    
+
     return tf.summary.image('GROUND_TRUTH', image)
 
   def _add_act_summary(self, tensor):
@@ -85,27 +85,36 @@ class Network(object):
       return tf.reshape(reshaped_score, input_shape)
     return tf.nn.softmax(bottom, name=name)
 
-  def _proposal_top_layer(self, rpn_cls_prob, rpn_bbox_pred, name):
-    with tf.variable_scope(name) as scope:
-      rois, rpn_scores = tf.py_func(proposal_top_layer,
-                                    [rpn_cls_prob, rpn_bbox_pred, self._im_info,
-                                     self._feat_stride, self._anchors, self._num_anchors],
-                                    [tf.float32, tf.float32], name="proposal_top")
-      rois.set_shape([cfg.TEST.RPN_TOP_N, 5])
-      rpn_scores.set_shape([cfg.TEST.RPN_TOP_N, 1])
+    def _proposal_top_layer(self, rpn_cls_prob, rpn_bbox_pred, name):
+        with tf.variable_scope(name) as scope:
+            rois, rpn_scores = proposal_top_layer(
+                rpn_cls_prob,
+                rpn_bbox_pred,
+                self._im_info,
+                self._feat_stride,
+                self._anchors,
+                self._num_anchors,
+            )
+            rois.set_shape([cfg.TEST.RPN_TOP_N, 5])
+            rpn_scores.set_shape([cfg.TEST.RPN_TOP_N, 1])
 
-    return rois, rpn_scores
+        return rois, rpn_scores
 
-  def _proposal_layer(self, rpn_cls_prob, rpn_bbox_pred, name):
-    with tf.variable_scope(name) as scope:
-      rois, rpn_scores = tf.py_func(proposal_layer,
-                                    [rpn_cls_prob, rpn_bbox_pred, self._im_info, self._mode,
-                                     self._feat_stride, self._anchors, self._num_anchors],
-                                    [tf.float32, tf.float32], name="proposal")
-      rois.set_shape([None, 5])
-      rpn_scores.set_shape([None, 1])
+    def _proposal_layer(self, rpn_cls_prob, rpn_bbox_pred, name):
+        with tf.variable_scope(name) as scope:
+            rois, rpn_scores = proposal_layer(
+                rpn_cls_prob,
+                rpn_bbox_pred,
+                self._im_info,
+                self._mode,
+                self._feat_stride,
+                self._anchors,
+                self._num_anchors,
+            )
+            rois.set_shape([None, 5])
+            rpn_scores.set_shape([None, 1])
 
-    return rois, rpn_scores
+        return rois, rpn_scores
 
   # Only use it if you have roi_pooling op written in tf.image
   def _roi_pool_layer(self, bootom, rois, name):
@@ -189,10 +198,13 @@ class Network(object):
       # just to get the shape right
       height = tf.to_int32(tf.ceil(self._im_info[0] / np.float32(self._feat_stride[0])))
       width = tf.to_int32(tf.ceil(self._im_info[1] / np.float32(self._feat_stride[0])))
-      anchors, anchor_length = tf.py_func(generate_anchors_pre,
-                                          [height, width,
-                                           self._feat_stride, self._anchor_scales, self._anchor_ratios],
-                                          [tf.float32, tf.int32], name="generate_anchors")
+      anchors, anchor_length = generate_anchors_pre(
+        height,
+        width,
+        self._feat_stride,
+        self._anchor_scales,
+        self._anchor_ratios,
+      )
       anchors.set_shape([None, 4])
       anchor_length.set_shape([])
       self._anchors = anchors
@@ -222,7 +234,7 @@ class Network(object):
     fc7 = self._head_to_tail(pool5, is_training)
     with tf.variable_scope(self._scope, self._scope):
       # region classification
-      cls_prob, bbox_pred = self._region_classification(fc7, is_training, 
+      cls_prob, bbox_pred = self._region_classification(fc7, is_training,
                                                         initializer, initializer_bbox)
 
     self._score_summaries.update(self._predictions)
@@ -327,13 +339,13 @@ class Network(object):
     return rois
 
   def _region_classification(self, fc7, is_training, initializer, initializer_bbox):
-    cls_score = slim.fully_connected(fc7, self._num_classes, 
+    cls_score = slim.fully_connected(fc7, self._num_classes,
                                        weights_initializer=initializer,
                                        trainable=is_training,
                                        activation_fn=None, scope='cls_score')
     cls_prob = self._softmax_layer(cls_score, "cls_prob")
     cls_pred = tf.argmax(cls_score, axis=1, name="cls_pred")
-    bbox_pred = slim.fully_connected(fc7, self._num_classes * 4, 
+    bbox_pred = slim.fully_connected(fc7, self._num_classes * 4,
                                      weights_initializer=initializer_bbox,
                                      trainable=is_training,
                                      activation_fn=None, scope='bbox_pred')
@@ -382,10 +394,10 @@ class Network(object):
 
     # list as many types of layers as possible, even if they are not used now
     with arg_scope([slim.conv2d, slim.conv2d_in_plane, \
-                    slim.conv2d_transpose, slim.separable_conv2d, slim.fully_connected], 
+                    slim.conv2d_transpose, slim.separable_conv2d, slim.fully_connected],
                     weights_regularizer=weights_regularizer,
-                    biases_regularizer=biases_regularizer, 
-                    biases_initializer=tf.constant_initializer(0.0)): 
+                    biases_regularizer=biases_regularizer,
+                    biases_initializer=tf.constant_initializer(0.0)):
       rois, cls_prob, bbox_pred = self._build_network(training)
 
     layers_to_output = {'rois': rois}
@@ -482,4 +494,3 @@ class Network(object):
     feed_dict = {self._image: blobs['data'], self._im_info: blobs['im_info'],
                  self._gt_boxes: blobs['gt_boxes']}
     sess.run([train_op], feed_dict=feed_dict)
-
